@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'role_selection_screen.dart';
 import '../dashboard/patient_dashboard.dart';
+import '../doctor/dashboard/doctor_dashboard.dart';
+import '../pharmacy/dashboard/pharmacy_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,10 +38,20 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
         
-        // Navigate to Home
+        // Navigate to appropriate dashboard
+        Widget targetDashboard;
+        final email = _emailController.text.toLowerCase();
+        if (email.contains('doctor')) {
+          targetDashboard = const DoctorDashboard();
+        } else if (email.contains('pharmacy')) {
+          targetDashboard = const PharmacyDashboard();
+        } else {
+          targetDashboard = const PatientDashboard();
+        }
+        
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const PatientDashboard()),
+          MaterialPageRoute(builder: (context) => targetDashboard),
         );
       }
     }

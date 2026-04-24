@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../home_screen.dart';
+import '../../doctor/dashboard/doctor_dashboard.dart';
 
 class DoctorSignupScreen extends StatefulWidget {
   const DoctorSignupScreen({super.key});
@@ -34,7 +34,7 @@ class _DoctorSignupScreenState extends State<DoctorSignupScreen> {
         
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(userRole: 'Doctor')),
+          MaterialPageRoute(builder: (context) => const DoctorDashboard()),
           (route) => false,
         );
       }

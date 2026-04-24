@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../home_screen.dart';
+import '../../pharmacy/dashboard/pharmacy_dashboard.dart';
 
 class PharmacySignupScreen extends StatefulWidget {
   const PharmacySignupScreen({super.key});
@@ -34,7 +34,7 @@ class _PharmacySignupScreenState extends State<PharmacySignupScreen> {
         
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(userRole: 'Pharmacy')),
+          MaterialPageRoute(builder: (context) => const PharmacyDashboard()),
           (route) => false,
         );
       }

@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+import '../../dashboard/patient_dashboard.dart';
+
+class PatientSignupScreen extends StatefulWidget {
+  const PatientSignupScreen({super.key});
+
+  @override
+  State<PatientSignupScreen> createState() => _PatientSignupScreenState();
+}
+
+class _PatientSignupScreenState extends State<PatientSignupScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  void _handleSignup() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      
+      // Simulate network request
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const PatientDashboard()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF0D47A1)),
+        title: const Text(
+          'Patient Signup',
+          style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Create your account',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildTextField('Full Name', Icons.person_outline),
+                const SizedBox(height: 16),
+                _buildTextField('Email Address', Icons.email_outlined, keyboardType: TextInputType.emailAddress, isEmail: true),
+                const SizedBox(height: 16),
+                _buildTextField('Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                const SizedBox(height: 16),
+                _buildTextField('Date of Birth', Icons.calendar_today_outlined, keyboardType: TextInputType.datetime),
+                const SizedBox(height: 16),
+                _buildPasswordField('Password', Icons.lock_outline),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleSignup,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D47A1),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    disabledBackgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.6),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Sign Up as Patient',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, IconData icon, {TextInputType? keyboardType, bool isEmail = false}) {
+    return TextFormField(
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF00B8D4)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF00B8D4), width: 2),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter $label';
+        }
+        if (isEmail && !value.contains('@')) {
+          return 'Please enter a valid email address';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField(String label, IconData icon) {
+    return TextFormField(
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF00B8D4)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF00B8D4), width: 2),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter $label';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters long';
+        }
+        return null;
+      },
+    );
+  }
+}

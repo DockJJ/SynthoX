@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../consultation/video_call_screen.dart';
 
 class AppointmentsScreen extends StatelessWidget {
   const AppointmentsScreen({super.key});
@@ -16,7 +17,7 @@ class AppointmentsScreen extends StatelessWidget {
             'Appointments',
             style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
           ),
-          automaticallyImplyLeading: false, // Assuming it's in a BottomNav
+          automaticallyImplyLeading: false,
           bottom: const TabBar(
             labelColor: Color(0xFF0D47A1),
             unselectedLabelColor: Colors.grey,
@@ -119,7 +120,7 @@ Widget _buildAppointmentCard(BuildContext context, {required bool isUpcoming}) {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
@@ -153,13 +154,40 @@ Widget _buildAppointmentCard(BuildContext context, {required bool isUpcoming}) {
           ),
         ),
         if (isUpcoming) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          // Join Video Call Highlight Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const VideoCallScreen(
+                      participantName: 'Dr. Olivia Carter',
+                      participantRole: 'Doctor',
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.videocam, color: Colors.white),
+              label: const Text(
+                'Join Telehealth Call',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00B8D4),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    // Show cancel dialog
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(

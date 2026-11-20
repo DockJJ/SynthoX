@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'doctor_edit_profile_screen.dart';
+import '../../settings/role_settings_screen.dart';
 import '../../auth/login_screen.dart';
 
 class DoctorProfileScreen extends StatelessWidget {
@@ -15,7 +16,10 @@ class DoctorProfileScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: const Text(
           'Doctor Profile',
-          style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF0D47A1),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -35,9 +39,16 @@ class DoctorProfileScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE0F7FA),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF00B8D4), width: 3),
+                          border: Border.all(
+                            color: const Color(0xFF00B8D4),
+                            width: 3,
+                          ),
                         ),
-                        child: const Icon(Icons.person, size: 60, color: Color(0xFF0097A7)),
+                        child: const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Color(0xFF0097A7),
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
@@ -48,15 +59,23 @@ class DoctorProfileScreen extends StatelessWidget {
                             color: Color(0xFF0D47A1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'Dr. John Smith',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D47A1),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   const Text(
@@ -74,7 +93,9 @@ class DoctorProfileScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const DoctorEditProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const DoctorEditProfileScreen(),
+                  ),
                 );
               },
             ),
@@ -94,7 +115,15 @@ class DoctorProfileScreen extends StatelessWidget {
               context,
               'Settings',
               Icons.settings_outlined,
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const RoleSettingsScreen(role: AppUserRole.doctor),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 32),
             Padding(
@@ -103,7 +132,9 @@ class DoctorProfileScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
                     (route) => false,
                   );
                 },
@@ -116,7 +147,10 @@ class DoctorProfileScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Logout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -126,7 +160,12 @@ class DoctorProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileSection(BuildContext context, String title, IconData icon, {required VoidCallback onTap}) {
+  Widget _buildProfileSection(
+    BuildContext context,
+    String title,
+    IconData icon, {
+    required VoidCallback onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
@@ -137,7 +176,7 @@ class DoctorProfileScreen extends StatelessWidget {
             color: Colors.grey.shade100,
             blurRadius: 5,
             spreadRadius: 1,
-          )
+          ),
         ],
       ),
       child: ListTile(
@@ -149,8 +188,18 @@ class DoctorProfileScreen extends StatelessWidget {
           ),
           child: Icon(icon, color: const Color(0xFF1976D2)),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
         onTap: onTap,
       ),
     );

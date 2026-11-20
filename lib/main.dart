@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'providers/auth_provider.dart';
+import 'providers/chat_provider.dart';
+import 'providers/theme_provider.dart';
 
 void main() {
-  runApp(const SynthoXApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: const SynthoXApp(),
+    ),
+  );
 }
 
 class SynthoXApp extends StatelessWidget {
@@ -10,12 +23,13 @@ class SynthoXApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'SynthoX',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D47A1)), // Deep Blue
-        useMaterial3: true,
-      ),
+      themeMode: themeProvider.themeMode,
+      theme: ThemeProvider.lightTheme,
+      darkTheme: ThemeProvider.darkTheme,
       home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );

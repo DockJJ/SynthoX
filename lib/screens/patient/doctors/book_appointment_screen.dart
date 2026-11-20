@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/appointment_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -11,13 +12,26 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   int _selectedDay = 0;
   int _selectedTime = 0;
   bool _isLoading = false;
+  final AppointmentService _appointmentService = AppointmentService();
 
   final List<String> _days = ['Mon 12', 'Tue 13', 'Wed 14', 'Thu 15', 'Fri 16'];
   final List<String> _times = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
 
   void _confirmBooking() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+
+    await _appointmentService.createAppointment(
+      patientId: 'pat123',
+      patientName: 'Sarah Jenkins',
+      doctorId: 'doc123',
+      doctorName: 'Dr. Olivia Carter',
+      specialty: 'Cardiologist',
+      date: _days[_selectedDay],
+      timeSlot: _times[_selectedTime],
+      consultationType: 'Video Consultation',
+      problemNote: 'Cardiology routine consultation',
+      fee: 80.0,
+    );
     
     if (mounted) {
       setState(() => _isLoading = false);

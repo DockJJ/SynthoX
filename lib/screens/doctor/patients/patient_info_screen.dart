@@ -1,10 +1,123 @@
 import 'package:flutter/material.dart';
+import '../../../services/health_record_service.dart';
 
 class PatientInfoScreen extends StatelessWidget {
   final String patientName;
   final String complaint;
+  final HealthRecordService _recordService = HealthRecordService();
 
-  const PatientInfoScreen({super.key, required this.patientName, required this.complaint});
+  PatientInfoScreen({
+    super.key,
+    required this.patientName,
+    required this.complaint,
+  });
+
+  void _showRecordsSheet(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => FutureBuilder<List<dynamic>>(
+        future: _recordService.getPatientRecords('pat123'),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(
+              height: 250,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final records = snapshot.data ?? [];
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            maxChildSize: 0.85,
+            builder: (context, scrollController) => Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Electronic Health Records - $patientName',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D47A1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: records.length,
+                      itemBuilder: (context, index) {
+                        final rec = records[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F9FA),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    rec['diagnosis'] ?? 'Clinical Note',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0D47A1),
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  Text(
+                                    rec['date'] ?? 'Recent',
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Provider: ${rec['doctorName'] ?? 'Dr. Olivia Carter'}',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF00B8D4), fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                rec['clinicalNotes'] ?? '',
+                                style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +238,7 @@ class PatientInfoScreen extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => _showRecordsSheet(context),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: const BorderSide(color: Color(0xFF0D47A1)),
@@ -137,7 +250,11 @@ class PatientInfoScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Starting clinical exam session...')),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0D47A1),
                   padding: const EdgeInsets.symmetric(vertical: 16),

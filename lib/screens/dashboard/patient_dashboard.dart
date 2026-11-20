@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../patient/lab/lab_test_list_screen.dart';
+import '../patient/ai_triage/synthox_ai_screen.dart';
+import '../patient/medication/medication_reminders_screen.dart';
 import '../patient/doctors/doctor_list_screen.dart';
 import '../patient/pharmacy/pharmacy_search_screen.dart';
 import '../patient/appointments/appointments_screen.dart';
@@ -193,12 +196,70 @@ class _HomeTab extends StatelessWidget {
                     const Color(0xFFF3E5F5), 
                     const Color(0xFF7B1FA2),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Lab feature coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LabTestListScreen()),
+                      );
+                    }
+                  ),
+                  _buildCategoryCard(
+                    'AI Triage', 
+                    Icons.psychology_outlined, 
+                    const Color(0xFFE8F5E9), 
+                    const Color(0xFF2E7D32),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SynthoXAIScreen()),
                       );
                     }
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Medication Reminders Quick Banner
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MedicationRemindersScreen()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F7FA),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF00B8D4).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.alarm_on, color: Color(0xFF0097A7), size: 30),
+                      SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Medication Schedule & Reminders',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1), fontSize: 14),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              '1 dose remaining today • Tap to view timeline',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: Color(0xFF0D47A1)),
+                    ],
+                  ),
+                ),
               ),
             ),
             

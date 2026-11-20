@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: synthox-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synthox_user
+      POSTGRES_PASSWORD: synthox_secure_pass
+      POSTGRES_DB: synthox_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synthox_user -d synthox_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: synthox-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: synthox-coturn
+    restart: unless-stopped
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "5349:5349/udp"
+      - "49152-49200:49152-49200/udp"
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+    command: ["-c", "/etc/turnserver.conf"]
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

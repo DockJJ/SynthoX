@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../patients/patient_info_screen.dart';
 import '../chat/doctor_chat_detail_screen.dart';
+import '../../consultation/video_call_screen.dart';
 
 class DoctorAppointmentsScreen extends StatelessWidget {
   const DoctorAppointmentsScreen({super.key});
@@ -255,10 +256,38 @@ class _ConfirmedTab extends StatelessWidget {
                 )
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            // Start Video Call Button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => VideoCallScreen(
+                        participantName: names[index],
+                        participantRole: 'Patient',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.videocam, color: Colors.white),
+                label: const Text(
+                  'Start Telehealth Video Call',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00B8D4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -283,12 +312,11 @@ class _ConfirmedTab extends StatelessWidget {
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D47A1),
+                style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Mark as Completed', style: TextStyle(color: Colors.white)),
+                child: const Text('Mark as Completed', style: TextStyle(color: Color(0xFF0D47A1))),
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/pharmacy_service.dart';
 
 class OrderMedicationScreen extends StatefulWidget {
   const OrderMedicationScreen({super.key});
@@ -9,10 +10,20 @@ class OrderMedicationScreen extends StatefulWidget {
 
 class _OrderMedicationScreenState extends State<OrderMedicationScreen> {
   bool _isLoading = false;
+  final PharmacyService _pharmacyService = PharmacyService();
 
   void _placeOrder() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+
+    await _pharmacyService.createOrder(
+      patientId: 'pat123',
+      patientName: 'Sarah Jenkins',
+      medications: [
+        {'drugName': 'Amoxicillin 500mg', 'dosage': '1 capsule 3x daily', 'quantity': 1, 'price': 15.5}
+      ],
+      totalPrice: 15.5,
+      deliveryAddress: '124 Healthcare Ave, Victoria Island',
+    );
     
     if (mounted) {
       setState(() => _isLoading = false);

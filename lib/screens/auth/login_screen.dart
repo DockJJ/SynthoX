@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'role_selection_screen.dart';
 import '../dashboard/patient_dashboard.dart';
 import '../doctor/dashboard/doctor_dashboard.dart';
 import '../pharmacy/dashboard/pharmacy_dashboard.dart';
+import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,44 +17,57 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
-  bool _isLoading = false;
+  String _selectedRole = 'Patient';
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      
-      // Simulate network request
-      await Future.delayed(const Duration(seconds: 2));
-      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      final result = await authProvider.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
       if (mounted) {
-        setState(() => _isLoading = false);
-        
-        // Show success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login successful!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        
-        // Navigate to appropriate dashboard
-        Widget targetDashboard;
-        final email = _emailController.text.toLowerCase();
-        if (email.contains('doctor')) {
-          targetDashboard = const DoctorDashboard();
-        } else if (email.contains('pharmacy')) {
-          targetDashboard = const PharmacyDashboard();
+        if (result['success']) {
+          // Show success
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login successful!'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+
+          // Navigate to appropriate dashboard based on selected role
+          Widget targetDashboard;
+          switch (_selectedRole) {
+            case 'Doctor':
+              targetDashboard = const DoctorDashboard();
+              break;
+            case 'Pharmacy':
+              targetDashboard = const PharmacyDashboard();
+              break;
+            default:
+              targetDashboard = const PatientDashboard();
+          }
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => targetDashboard),
+          );
         } else {
-          targetDashboard = const PatientDashboard();
+          // Show error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
-        
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => targetDashboard),
-        );
       }
     }
   }
@@ -96,24 +111,71 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Sign in to continue',
                     textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Role Selection
+                  const Text(
+                    'Login as:',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0D47A1),
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _RoleOption(
+                          title: 'Patient',
+                          icon: Icons.person_outline,
+                          isSelected: _selectedRole == 'Patient',
+                          onTap: () =>
+                              setState(() => _selectedRole = 'Patient'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _RoleOption(
+                          title: 'Doctor',
+                          icon: Icons.medical_services_outlined,
+                          isSelected: _selectedRole == 'Doctor',
+                          onTap: () => setState(() => _selectedRole = 'Doctor'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _RoleOption(
+                          title: 'Pharmacy',
+                          icon: Icons.local_pharmacy_outlined,
+                          isSelected: _selectedRole == 'Pharmacy',
+                          onTap: () =>
+                              setState(() => _selectedRole = 'Pharmacy'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
                   // Email Field
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: 'Email Address',
-                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF00B8D4)),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFF00B8D4),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF00B8D4), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00B8D4),
+                          width: 2,
+                        ),
                       ),
                     ),
                     keyboardType: TextInputType.emailAddress,
@@ -134,10 +196,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF00B8D4)),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF00B8D4),
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: Colors.grey,
                         ),
                         onPressed: () {
@@ -151,7 +218,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF00B8D4), width: 2),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF00B8D4),
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -174,29 +244,39 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
                   // Login Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D47A1),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      disabledBackgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.6),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Sign In',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  Consumer<AuthProvider>(
+                    builder: (context, auth, _) {
+                      return ElevatedButton(
+                        onPressed: auth.isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          disabledBackgroundColor: const Color(
+                            0xFF0D47A1,
+                          ).withValues(alpha: 0.6),
+                        ),
+                        child: auth.isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                   // Sign Up link
@@ -208,12 +288,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const RoleSelectionScreen(),
+                            ),
                           );
                         },
                         child: const Text(
                           'Sign Up',
-                          style: TextStyle(color: Color(0xFF00B8D4), fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Color(0xFF00B8D4),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -222,6 +307,59 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleOption extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _RoleOption({
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF0D47A1).withValues(alpha: 0.1)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0D47A1) : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF0D47A1) : Colors.grey,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? const Color(0xFF0D47A1) : Colors.grey,
+              ),
+            ),
+          ],
         ),
       ),
     );

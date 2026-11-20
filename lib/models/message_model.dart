@@ -1,49 +1,64 @@
-class MessageModel {
+class MessageSender {
   final String id;
-  final String roomId;
-  final String senderId;
-  final String senderName;
-  final String senderRole;
-  final String content;
-  final DateTime timestamp;
-  final bool isMe;
+  final String username;
+  final String displayName;
+  final String? avatarUrl;
 
-  MessageModel({
+  const MessageSender({
     required this.id,
-    required this.roomId,
-    required this.senderId,
-    required this.senderName,
-    required this.senderRole,
-    required this.content,
-    required this.timestamp,
-    this.isMe = false,
+    required this.username,
+    required this.displayName,
+    this.avatarUrl,
   });
 
-  factory MessageModel.fromJson(Map<String, dynamic> json, {String? currentUserId}) {
-    final senderId = json['senderId'] ?? '';
-    return MessageModel(
-      id: json['_id'] ?? json['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      roomId: json['roomId'] ?? '',
-      senderId: senderId,
-      senderName: json['senderName'] ?? 'User',
-      senderRole: json['senderRole'] ?? 'patient',
-      content: json['content'] ?? '',
-      timestamp: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
-          : DateTime.now(),
-      isMe: currentUserId != null ? senderId == currentUserId : false,
-    );
-  }
+  factory MessageSender.fromJson(Map<String, dynamic> json) => MessageSender(
+        id: json['id'] as String,
+        username: json['username'] as String,
+        displayName: json['displayName'] as String,
+        avatarUrl: json['avatarUrl'] as String?,
+      );
+}
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'roomId': roomId,
-      'senderId': senderId,
-      'senderName': senderName,
-      'senderRole': senderRole,
-      'content': content,
-      'createdAt': timestamp.toIso8601String(),
-    };
+class MessageModel {
+  final String id;
+  final String conversationId;
+  final String senderId;
+  final MessageSender sender;
+  final String content;
+  final DateTime createdAt;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
+  final bool isMe;
+
+  const MessageModel({
+    required this.id,
+    required this.conversationId,
+    required this.senderId,
+    required this.sender,
+    required this.content,
+    required this.createdAt,
+    this.deliveredAt,
+    this.readAt,
+    required this.isMe,
+  });
+
+  factory MessageModel.fromJson(Map<String, dynamic> json,
+      {required String currentUserId}) {
+    final senderId = json['senderId'] as String;
+    return MessageModel(
+      id: json['id'] as String,
+      conversationId: json['conversationId'] as String,
+      senderId: senderId,
+      sender: MessageSender.fromJson(json['sender'] as Map<String, dynamic>),
+      content: json['content'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      deliveredAt: json['deliveredAt'] != null
+          ? DateTime.parse(json['deliveredAt'] as String)
+          : null,
+      readAt: json['readAt'] != null
+          ? DateTime.parse(json['readAt'] as String)
+          : null,
+      isMe: senderId == currentUserId,
+    );
   }
 }

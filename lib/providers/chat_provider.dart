@@ -1,146 +1,162 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
+import '../services/api_service.dart';
 import '../services/socket_service.dart';
 
-class ChatProvider with ChangeNotifier {
-  final SocketService _socketService = SocketService();
-  
+class ChatProvider extends ChangeNotifier {
   List<MessageModel> _messages = [];
   bool _isLoading = false;
-  String? _currentRoomId;
-  String _currentUserId = 'pat123'; // Default current user ID fallback
+  String? _currentConversationId;
+  String _currentUserId = '';
+  bool _isOtherTyping = false;
 
-  List<MessageModel> get messages => _messages;
+  List<MessageModel> get messages => List.unmodifiable(_messages);
   bool get isLoading => _isLoading;
-  String? get currentRoomId => _currentRoomId;
-
-  ChatProvider() {
-    _socketService.connect();
-    _listenToIncomingMessages();
-  }
+  bool get isOtherTyping => _isOtherTyping;
 
   void setCurrentUser(String userId) {
     _currentUserId = userId;
   }
 
-  void enterRoom(String roomId) {
-    if (_currentRoomId == roomId) return;
-
-    if (_currentRoomId != null) {
-      _socketService.leaveRoom(_currentRoomId!);
-    }
-
-    _currentRoomId = roomId;
-    _messages.clear();
-    _socketService.joinRoom(roomId);
-    fetchRoomHistory(roomId);
+  void initSocket(SocketService socketService) {
+    socketService.onNewMessage(_onNewMessage);
+    socketService.onTypingStart(_onTypingStart);
+    socketService.onTypingStop(_onTypingStop);
   }
 
-  Future<void> fetchRoomHistory(String roomId) async {
+  Future<void> enterConversation(String conversationId) async {
+    _currentConversationId = conversationId;
+    _messages = [];
+    _isOtherTyping = false;
+    notifyListeners();
+    await fetchHistory(conversationId);
+  }
+
+  Future<void> fetchHistory(String conversationId) async {
     _isLoading = true;
     notifyListeners();
-
     try {
-      final response = await http
-          .get(Uri.parse('http://localhost:5000/api/chat/room/$roomId'))
-          .timeout(const Duration(seconds: 3));
-
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body);
-        final List list = body['data']['messages'] ?? [];
-        _messages = list
-            .map((m) => MessageModel.fromJson(m, currentUserId: _currentUserId))
-            .toList();
-      } else {
-        _loadFallbackMessages(roomId);
-      }
+      final data = await ApiService()
+          .get('/api/conversations/$conversationId/messages?limit=50');
+      final raw = data['messages'] as List<dynamic>? ?? [];
+      _messages = raw
+          .map((e) => MessageModel.fromJson(
+                e as Map<String, dynamic>,
+                currentUserId: _currentUserId,
+              ))
+          .toList();
     } catch (_) {
-      _loadFallbackMessages(roomId);
-    } finally {
-      _isLoading = false;
+      _messages = [];
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> sendMessage(SocketService socketService, String content) async {
+    if (_currentConversationId == null) return false;
+
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMessage = MessageModel(
+      id: tempId,
+      conversationId: _currentConversationId!,
+      senderId: _currentUserId,
+      sender: MessageSender(
+        id: _currentUserId,
+        username: '',
+        displayName: 'Me',
+      ),
+      content: content,
+      createdAt: DateTime.now(),
+      isMe: true,
+    );
+
+    _messages.add(tempMessage);
+    notifyListeners();
+
+    final completer = _Completer<bool>();
+
+    socketService.sendMessage(
+      conversationId: _currentConversationId!,
+      content: content,
+      tempId: tempId,
+      onAck: (data) {
+        final success = data['success'] as bool? ?? false;
+        if (success) {
+          final msgData = data['message'] as Map<String, dynamic>?;
+          final idx = _messages.indexWhere((m) => m.id == tempId);
+          if (idx != -1) {
+            if (msgData != null) {
+              final serverMsg = MessageModel.fromJson(
+                msgData,
+                currentUserId: _currentUserId,
+              );
+              _messages[idx] = serverMsg;
+            }
+          }
+          completer.complete(true);
+        } else {
+          _messages.removeWhere((m) => m.id == tempId);
+          completer.complete(false);
+        }
+        notifyListeners();
+      },
+    );
+
+    return completer.future;
+  }
+
+  void _onNewMessage(Map<String, dynamic> data) {
+    final msgData = data['message'] as Map<String, dynamic>?;
+    if (msgData == null) return;
+    final convId = msgData['conversationId'] as String?;
+    if (convId != _currentConversationId) return;
+    final msg = MessageModel.fromJson(msgData, currentUserId: _currentUserId);
+    // Avoid duplicates (in case the sender also receives message:new)
+    if (!_messages.any((m) => m.id == msg.id)) {
+      _messages.add(msg);
       notifyListeners();
     }
   }
 
-  void _loadFallbackMessages(String roomId) {
-    _messages = [
-      MessageModel(
-        id: '1',
-        roomId: roomId,
-        senderId: 'doc123',
-        senderName: 'Dr. Olivia Carter',
-        senderRole: 'doctor',
-        content: 'Hello! How are you feeling today?',
-        timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-        isMe: false,
-      ),
-      MessageModel(
-        id: '2',
-        roomId: roomId,
-        senderId: _currentUserId,
-        senderName: 'Sarah Jenkins',
-        senderRole: 'patient',
-        content: 'Hi Doctor, I still have a slight headache.',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 45)),
-        isMe: true,
-      ),
-      MessageModel(
-        id: '3',
-        roomId: roomId,
-        senderId: 'doc123',
-        senderName: 'Dr. Olivia Carter',
-        senderRole: 'doctor',
-        content: 'Did you take the medication I prescribed?',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-        isMe: false,
-      ),
-    ];
-  }
-
-  void sendMessage(String content, {required String senderName, required String senderRole}) {
-    if (_currentRoomId == null || content.trim().isEmpty) return;
-
-    final newMessage = MessageModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      roomId: _currentRoomId!,
-      senderId: _currentUserId,
-      senderName: senderName,
-      senderRole: senderRole,
-      content: content.trim(),
-      timestamp: DateTime.now(),
-      isMe: true,
-    );
-
-    _messages.add(newMessage);
-    notifyListeners();
-
-    _socketService.sendMessage(
-      roomId: _currentRoomId!,
-      senderId: _currentUserId,
-      senderName: senderName,
-      senderRole: senderRole,
-      content: content.trim(),
-    );
-  }
-
-  void _listenToIncomingMessages() {
-    _socketService.onMessageReceived((data) {
-      final senderId = data['senderId'] ?? '';
-      if (senderId != _currentUserId && data['roomId'] == _currentRoomId) {
-        final incomingMsg = MessageModel.fromJson(data, currentUserId: _currentUserId);
-        _messages.add(incomingMsg);
-        notifyListeners();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    if (_currentRoomId != null) {
-      _socketService.leaveRoom(_currentRoomId!);
+  void _onTypingStart(Map<String, dynamic> data) {
+    final convId = data['conversationId'] as String?;
+    if (convId == _currentConversationId) {
+      _isOtherTyping = true;
+      notifyListeners();
     }
-    super.dispose();
+  }
+
+  void _onTypingStop(Map<String, dynamic> data) {
+    final convId = data['conversationId'] as String?;
+    if (convId == _currentConversationId) {
+      _isOtherTyping = false;
+      notifyListeners();
+    }
+  }
+}
+
+/// Minimal completer-like helper to bridge socket ack callback to Future.
+class _Completer<T> {
+  T? _value;
+  bool _isCompleted = false;
+  final List<void Function(T)> _callbacks = [];
+
+  void complete(T value) {
+    if (_isCompleted) return;
+    _isCompleted = true;
+    _value = value;
+    for (final cb in _callbacks) {
+      cb(value);
+    }
+  }
+
+  Future<T> get future async {
+    if (_isCompleted) return _value as T;
+    return await Future<T>(() async {
+      while (!_isCompleted) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+      return _value as T;
+    });
   }
 }

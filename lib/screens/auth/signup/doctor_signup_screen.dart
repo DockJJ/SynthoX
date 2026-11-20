@@ -38,15 +38,18 @@ class _DoctorSignupScreenState extends State<DoctorSignupScreen> {
   void _handleSignup() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
+      final email = _emailController.text.trim();
+      final username = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+
       final result = await authProvider.signup(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: email,
+        username: username,
+        displayName: _nameController.text.trim(),
         password: _passwordController.text.trim(),
-        passwordConfirm: _confirmPasswordController.text.trim(),
         role: 'doctor',
       );
-      
+
       if (mounted) {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +59,6 @@ class _DoctorSignupScreenState extends State<DoctorSignupScreen> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const DoctorDashboard()),
@@ -65,7 +67,7 @@ class _DoctorSignupScreenState extends State<DoctorSignupScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']),
+              content: Text(result['message'] ?? 'Signup failed'),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),

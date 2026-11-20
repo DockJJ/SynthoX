@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'edit_profile_screen.dart';
 import '../vitals/vitals_dashboard_screen.dart';
 import '../../settings/role_settings_screen.dart';
 import '../../auth/login_screen.dart';
+import '../../../providers/auth_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -143,14 +145,17 @@ class ProfileScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (route) => false,
-                  );
+                onPressed: () async {
+                  await Provider.of<AuthProvider>(context, listen: false).logout();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,

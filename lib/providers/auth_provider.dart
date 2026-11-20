@@ -1,86 +1,129 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
-class AuthProvider with ChangeNotifier {
+class AuthProvider extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
-  final _storage = const FlutterSecureStorage();
-  final _authService = AuthService();
+  String? _role;
+
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final AuthService _authService = AuthService();
+
+  AuthProvider() {
+    _loadUser();
+  }
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
-
-  AuthProvider() {
-    // Try to auto-login on initialization
-    _loadUser();
-  }
+  String? get role => _role;
+  Future<String?> getAccessToken() => _storage.read(key: 'accessToken');
 
   Future<void> _loadUser() async {
-    // Logic to load user from storage can be added here
-    // For now, we'll just check if a token exists
-    final token = await _storage.read(key: 'jwt_token');
-    if (token != null) {
-      // In a real app, you'd verify the token with the backend
-      // and fetch the user profile.
+    try {
+      final accessToken = await _storage.read(key: 'accessToken');
+      if (accessToken == null) {
+        notifyListeners();
+        return;
+      }
+      final result = await _authService.getMe(accessToken);
+      if (result['success'] == true) {
+        _user = result['user'] as UserModel;
+      } else {
+        await _storage.deleteAll();
+        _user = null;
+      }
+      _role = await _storage.read(key: 'user_role');
+    } catch (_) {
+      await _storage.deleteAll();
+      _user = null;
+      _role = null;
     }
+    notifyListeners();
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(
+      String login, String password, String role) async {
     _isLoading = true;
     notifyListeners();
-
-    final result = await _authService.login(email, password);
-
-    if (result['success']) {
-      _user = result['user'];
-      await _storage.write(key: 'jwt_token', value: result['token']);
-      await _storage.write(key: 'user_role', value: _user!.role);
+    try {
+      final result = await _authService.login(login: login, password: password);
+      if (result['success'] == true) {
+        await _storage.write(
+            key: 'accessToken', value: result['accessToken'] as String);
+        await _storage.write(
+            key: 'refreshToken', value: result['refreshToken'] as String);
+        await _storage.write(key: 'user_role', value: role);
+        _user = result['user'] as UserModel;
+        _role = role;
+        _isLoading = false;
+        notifyListeners();
+        return {'success': true};
+      } else {
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'message': result['message']};
+      }
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': e.toString()};
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return result;
   }
 
   Future<Map<String, dynamic>> signup({
-    required String name,
     required String email,
+    required String username,
+    required String displayName,
     required String password,
-    required String passwordConfirm,
     required String role,
-    String? phone,
-    String? dateOfBirth,
+    String? avatarUrl,
   }) async {
     _isLoading = true;
     notifyListeners();
-
-    final result = await _authService.signup(
-      name: name,
-      email: email,
-      password: password,
-      passwordConfirm: passwordConfirm,
-      role: role,
-      phone: phone,
-      dateOfBirth: dateOfBirth,
-    );
-
-    if (result['success']) {
-      _user = result['user'];
-      await _storage.write(key: 'jwt_token', value: result['token']);
-      await _storage.write(key: 'user_role', value: _user!.role);
+    try {
+      final result = await _authService.signup(
+        email: email,
+        username: username,
+        displayName: displayName,
+        password: password,
+        avatarUrl: avatarUrl,
+      );
+      if (result['success'] == true) {
+        await _storage.write(
+            key: 'accessToken', value: result['accessToken'] as String);
+        await _storage.write(
+            key: 'refreshToken', value: result['refreshToken'] as String);
+        await _storage.write(key: 'user_role', value: role);
+        _user = result['user'] as UserModel;
+        _role = role;
+        _isLoading = false;
+        notifyListeners();
+        return {'success': true};
+      } else {
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'message': result['message']};
+      }
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': e.toString()};
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return result;
   }
 
   Future<void> logout() async {
-    _user = null;
+    try {
+      final refreshToken = await _storage.read(key: 'refreshToken');
+      await _authService.logout(refreshToken: refreshToken);
+    } catch (_) {
+      // best-effort
+    }
     await _storage.deleteAll();
+    _user = null;
+    _role = null;
     notifyListeners();
   }
 }

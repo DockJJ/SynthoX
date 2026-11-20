@@ -1,109 +1,156 @@
-import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as io;
-
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'api_config.dart';
 
 class SocketService {
-  static final SocketService _instance = SocketService._internal();
-  factory SocketService() => _instance;
-  SocketService._internal();
+  IO.Socket? _socket;
 
-  io.Socket? _socket;
   bool get isConnected => _socket?.connected ?? false;
 
-  void connect({String? serverUrl}) {
-    final url = serverUrl ?? ApiConfig.socketUrl;
+  void connect(String accessToken) {
     if (_socket != null && _socket!.connected) return;
-
-    _socket = io.io(
-      url,
-      io.OptionBuilder()
+    _socket = IO.io(
+      ApiConfig.socketUrl,
+      IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': accessToken})
           .disableAutoConnect()
           .build(),
     );
-
     _socket!.connect();
-
-    _socket!.onConnect((_) {
-      debugPrint('Connected to SynthoX WebSocket server');
-    });
-
-    _socket!.onDisconnect((_) {
-      debugPrint('Disconnected from SynthoX WebSocket server');
-    });
-
-    _socket!.onConnectError((err) {
-      debugPrint('WebSocket Connection Error: $err');
-    });
-  }
-
-  void joinRoom(String roomId) {
-    _socket?.emit('join_room', roomId);
-  }
-
-  void leaveRoom(String roomId) {
-    _socket?.emit('leave_room', roomId);
-  }
-
-  void sendMessage({
-    required String roomId,
-    required String senderId,
-    required String senderName,
-    required String senderRole,
-    required String content,
-  }) {
-    final payload = {
-      'roomId': roomId,
-      'senderId': senderId,
-      'senderName': senderName,
-      'senderRole': senderRole,
-      'content': content,
-      'createdAt': DateTime.now().toIso8601String(),
-    };
-    _socket?.emit('send_message', payload);
-  }
-
-  void onMessageReceived(Function(Map<String, dynamic>) callback) {
-    _socket?.on('receive_message', (data) {
-      if (data is Map<String, dynamic>) {
-        callback(data);
-      }
-    });
-  }
-
-  void initiateCall({
-    required String roomId,
-    required String callerName,
-    required String callerId,
-    String callType = 'video',
-  }) {
-    _socket?.emit('initiate_call', {
-      'roomId': roomId,
-      'callerName': callerName,
-      'callerId': callerId,
-      'callType': callType,
-    });
-  }
-
-  void onIncomingCall(Function(Map<String, dynamic>) callback) {
-    _socket?.on('incoming_call', (data) {
-      if (data is Map<String, dynamic>) {
-        callback(data);
-      }
-    });
-  }
-
-  void endCall(String roomId) {
-    _socket?.emit('end_call', {'roomId': roomId});
-  }
-
-  void onCallEnded(Function() callback) {
-    _socket?.on('call_ended', (_) => callback());
+    _socket!.onConnect((_) => print('[Socket] Connected'));
+    _socket!.onConnectError((e) => print('[Socket] Connect error: $e'));
+    _socket!.onDisconnect((_) => print('[Socket] Disconnected'));
   }
 
   void disconnect() {
     _socket?.disconnect();
     _socket = null;
   }
+
+  // ── Messages ──────────────────────────────────────────
+
+  void sendMessage({
+    required String conversationId,
+    required String content,
+    String? tempId,
+    required Function(Map<String, dynamic>) onAck,
+  }) {
+    _socket?.emitWithAck(
+      'message:send',
+      {
+        'conversationId': conversationId,
+        'content': content,
+        if (tempId != null) 'tempId': tempId,
+      },
+      ack: (data) => onAck(Map<String, dynamic>.from(data as Map)),
+    );
+  }
+
+  void markDelivered({
+    required String messageId,
+    required String conversationId,
+  }) =>
+      _socket?.emit('message:delivered', {
+        'messageId': messageId,
+        'conversationId': conversationId,
+      });
+
+  void markRead({required String conversationId}) =>
+      _socket?.emit('message:read', {'conversationId': conversationId});
+
+  void startTyping({required String conversationId}) =>
+      _socket?.emit('typing:start', {'conversationId': conversationId});
+
+  void stopTyping({required String conversationId}) =>
+      _socket?.emit('typing:stop', {'conversationId': conversationId});
+
+  void onNewMessage(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('message:new',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onMessageDelivered(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('message:delivered',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onMessageRead(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('message:read',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onTypingStart(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('typing:start',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onTypingStop(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('typing:stop',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onPresenceUpdate(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('presence:update',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  // ── Calls ─────────────────────────────────────────────
+
+  void inviteCall({required String calleeId, required String callType}) =>
+      _socket?.emit('call:invite', {'calleeId': calleeId, 'callType': callType});
+
+  void acceptCall({required String callId}) =>
+      _socket?.emit('call:accept', {'callId': callId});
+
+  void rejectCall({required String callId, String? reason}) =>
+      _socket?.emit('call:reject', {
+        'callId': callId,
+        if (reason != null) 'reason': reason,
+      });
+
+  void sendOffer({required String callId, required Map<String, dynamic> sdp}) =>
+      _socket?.emit('call:offer', {'callId': callId, 'sdp': sdp});
+
+  void sendAnswer(
+          {required String callId, required Map<String, dynamic> sdp}) =>
+      _socket?.emit('call:answer', {'callId': callId, 'sdp': sdp});
+
+  void sendIceCandidate({
+    required String callId,
+    required Map<String, dynamic> candidate,
+  }) =>
+      _socket?.emit(
+          'call:ice-candidate', {'callId': callId, 'candidate': candidate});
+
+  void hangup({required String callId, String? reason}) =>
+      _socket?.emit('call:hangup', {
+        'callId': callId,
+        if (reason != null) 'reason': reason,
+      });
+
+  void onCallInvite(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:invite',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallAccept(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:accept',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallReject(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:reject',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallBusy(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:busy',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallOffer(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:offer',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallAnswer(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:answer',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallIceCandidate(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:ice-candidate',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
+
+  void onCallHangup(Function(Map<String, dynamic>) callback) =>
+      _socket?.on('call:hangup',
+          (data) => callback(Map<String, dynamic>.from(data as Map)));
 }

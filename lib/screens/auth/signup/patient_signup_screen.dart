@@ -14,11 +14,8 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _dobController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  DateTime? _selectedDateOfBirth;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -27,8 +24,6 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
-    _dobController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -38,14 +33,16 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+      // Derive username from email prefix (before @)
+      final email = _emailController.text.trim();
+      final username = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+
       final result = await authProvider.signup(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: email,
+        username: username,
+        displayName: _nameController.text.trim(),
         password: _passwordController.text.trim(),
-        passwordConfirm: _confirmPasswordController.text.trim(),
         role: 'patient',
-        phone: _phoneController.text.trim(),
-        dateOfBirth: _dobController.text.trim(),
       );
 
       if (mounted) {
@@ -57,7 +54,6 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const PatientDashboard()),
@@ -66,36 +62,13 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']),
+              content: Text(result['message'] ?? 'Signup failed'),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
       }
-    }
-  }
-
-  Future<void> _selectDateOfBirth() async {
-    final today = DateTime.now();
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate:
-          _selectedDateOfBirth ??
-          DateTime(today.year - 18, today.month, today.day),
-      firstDate: DateTime(1900),
-      lastDate: today,
-      helpText: 'SELECT DATE OF BIRTH',
-    );
-
-    if (selectedDate != null) {
-      setState(() {
-        _selectedDateOfBirth = selectedDate;
-        _dobController.text =
-            '${selectedDate.year.toString().padLeft(4, '0')}-'
-            '${selectedDate.month.toString().padLeft(2, '0')}-'
-            '${selectedDate.day.toString().padLeft(2, '0')}';
-      });
     }
   }
 
@@ -144,21 +117,6 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   isEmail: true,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  'Phone Number',
-                  Icons.phone_outlined,
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  'Date of Birth',
-                  Icons.calendar_today_outlined,
-                  controller: _dobController,
-                  readOnly: true,
-                  onTap: _selectDateOfBirth,
                 ),
                 const SizedBox(height: 16),
                 _buildPasswordField(

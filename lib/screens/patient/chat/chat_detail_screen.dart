@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/chat_provider.dart';
+import '../../../services/socket_service.dart';
 import '../../consultation/video_call_screen.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String name;
-  final String roomId;
+  final String conversationId;
 
   const ChatDetailScreen({
     super.key,
     required this.name,
-    this.roomId = 'room_doc123_pat123',
+    this.conversationId = '',
   });
 
   @override
@@ -25,7 +26,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatProvider>().enterRoom(widget.roomId);
+      context.read<ChatProvider>().enterConversation(widget.conversationId);
     });
   }
 
@@ -39,11 +40,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _sendMessage() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
-      context.read<ChatProvider>().sendMessage(
-            text,
-            senderName: 'Sarah Jenkins',
-            senderRole: 'patient',
-          );
+      final socketService = Provider.of<SocketService>(context, listen: false);
+      context.read<ChatProvider>().sendMessage(socketService, text);
       _textController.clear();
 
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -140,7 +138,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     itemBuilder: (context, index) {
                       final msg = chatProvider.messages[index];
                       final timeStr =
-                          '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}';
+                          '${msg.createdAt.hour.toString().padLeft(2, '0')}:${msg.createdAt.minute.toString().padLeft(2, '0')}';
                       return _buildMessageBubble(
                         msg.content,
                         isMe: msg.isMe,

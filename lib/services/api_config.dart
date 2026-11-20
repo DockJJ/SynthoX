@@ -43,6 +43,12 @@ class ApiConfig {
 
   static int port = 5000;
 
-  static String get baseUrl => 'http://$host:$port/api';
-  static String get socketUrl => 'http://$host:$port';
+  /// Root server URL (http://<host>:5000)
+  static String get baseUrl => 'http://$host:$port';
+
+  /// Base URL for REST API (http://<host>:5000/api)
+  static String get apiBaseUrl => '$baseUrl/api';
+
+  /// Socket.IO connection URL (http://<host>:5000)
+  static String get socketUrl => baseUrl;
 }

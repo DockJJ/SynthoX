@@ -102,7 +102,12 @@ class DoctorChatListScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => DoctorChatDetailScreen(patientName: chat['name'] as String)),
+                MaterialPageRoute(
+                  builder: (context) => DoctorChatDetailScreen(
+                    patientName: chat['name'] as String,
+                    conversationId: 'doc_conv_$index',
+                  ),
+                ),
               );
             },
           );

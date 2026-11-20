@@ -4,11 +4,13 @@ import 'screens/auth/login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/socket_service.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
+        Provider<SocketService>(create: (_) => SocketService()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),

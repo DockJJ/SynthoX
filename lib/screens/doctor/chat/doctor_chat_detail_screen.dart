@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/chat_provider.dart';
+import '../../../services/socket_service.dart';
 import '../../consultation/video_call_screen.dart';
 
 class DoctorChatDetailScreen extends StatefulWidget {
   final String patientName;
-  final String roomId;
+  final String conversationId;
 
   const DoctorChatDetailScreen({
     super.key,
     required this.patientName,
-    this.roomId = 'room_doc123_pat123',
+    this.conversationId = '',
   });
 
   @override
@@ -26,8 +27,7 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final chatProvider = context.read<ChatProvider>();
-      chatProvider.setCurrentUser('doc123'); // Set active user as Doctor
-      chatProvider.enterRoom(widget.roomId);
+      chatProvider.enterConversation(widget.conversationId);
     });
   }
 
@@ -41,11 +41,8 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
   void _sendMessage() {
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
-      context.read<ChatProvider>().sendMessage(
-            text,
-            senderName: 'Dr. Olivia Carter',
-            senderRole: 'doctor',
-          );
+      final socketService = Provider.of<SocketService>(context, listen: false);
+      context.read<ChatProvider>().sendMessage(socketService, text);
       _textController.clear();
 
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -142,10 +139,10 @@ class _DoctorChatDetailScreenState extends State<DoctorChatDetailScreen> {
                     itemBuilder: (context, index) {
                       final msg = chatProvider.messages[index];
                       final timeStr =
-                          '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}';
+                          '${msg.createdAt.hour.toString().padLeft(2, '0')}:${msg.createdAt.minute.toString().padLeft(2, '0')}';
                       return _buildMessageBubble(
                         msg.content,
-                        isMe: msg.senderId == 'doc123',
+                        isMe: msg.isMe,
                         time: timeStr,
                       );
                     },

@@ -105,7 +105,7 @@ class ChatListScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ChatDetailScreen(name: chat['name'] as String)),
+                MaterialPageRoute(builder: (context) => ChatDetailScreen(name: chat['name'] as String, conversationId: 'conv_$index')),
               );
             },
           );
